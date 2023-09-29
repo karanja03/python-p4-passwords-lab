@@ -27,16 +27,35 @@ class Signup(Resource):
         db.session.commit()
         return user.to_dict(), 201
 
-class CheckSession(Resource):
-    pass
+from sqlalchemy.ext.hybrid import hybrid_property
+from app import bcrypt
 
-class Login(Resource):
-    pass
+class User(db.Model, SerializerMixin):
+    __tablename__ = 'users'
 
-class Logout(Resource):
-    pass
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String, unique=True)
+    _password_hash = db.Column(db.String, nullable=False)
 
-api.add_resource(ClearSession, '/clear', endpoint='clear')
+    articles = db.relationship('Article', backref='user')
+
+    def __repr__(self):
+        return f'User {self.username}, ID {self.id}'
+
+    @hybrid_property
+    def password_hash(self):
+        return self._password_hash
+
+    @password_hash.setter
+    def password_hash(self, password):
+        # utf-8 encoding and decoding is required in python 3
+        password_hash = bcrypt.generate_password_hash(
+            password.encode('utf-8'))
+        self._password_hash = password_hash.decode('utf-8')
+
+    def authenticate(self, password):
+        return bcrypt.check_password_hash(
+            self._password_hash, password.encode('utf-api.add_resource(ClearSession, '/clear', endpoint='clear')
 api.add_resource(Signup, '/signup', endpoint='signup')
 
 if __name__ == '__main__':
